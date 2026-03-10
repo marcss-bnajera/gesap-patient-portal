@@ -1,6 +1,10 @@
+import { Module } from '@nestjs/common';
 import { EmergencyContactsController } from './emergency-contacts.controller';
+import { EmergencyContactsService } from './emergency-contacts.service';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
+    imports: [PrismaModule],
     controllers: [EmergencyContactsController],
     providers: [EmergencyContactsService],
 })

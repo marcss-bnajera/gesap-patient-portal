@@ -1,16 +1,12 @@
-// =============================================
-// AuthService del Portal
-// Autoregistro LIBRE con DPI + Login + Aprobacion por auditor
-// El paciente puede registrarse aunque no este en el sistema aun
-// =============================================
-
 import {
     Injectable, UnauthorizedException, ConflictException,
     NotFoundException, BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
+import { RegisterPatientDto } from './dto/register-patient.dto';
+import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
-@@ -15, 121 + 16, 112 @@ import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -19,24 +15,17 @@ export class AuthService {
         private jwtService: JwtService,
     ) { }
 
-    // Autoregistro: cualquier persona puede crear su cuenta con su DPI
-    // La cuenta queda PENDING hasta que un auditor la apruebe
     async register(dto: RegisterPatientDto) {
-        // Verificar que no tenga cuenta ya con ese DPI
         const existingDpi = await this.prisma.patientAccount.findUnique({
             where: { dpi: dto.dpi },
         });
-
         if (existingDpi) {
             throw new ConflictException('Ya existe una cuenta registrada con ese DPI');
-
         }
 
-        // Verificar que el email no este en uso
         const existingEmail = await this.prisma.patientAccount.findUnique({
             where: { email: dto.email },
         });
-
         if (existingEmail) {
             throw new ConflictException('Ese correo ya esta registrado');
         }
@@ -58,7 +47,6 @@ export class AuthService {
         };
     }
 
-    // Login del paciente
     async login(dto: LoginDto) {
         const account = await this.prisma.patientAccount.findUnique({
             where: { email: dto.email },
@@ -66,21 +54,17 @@ export class AuthService {
 
         if (!account) {
             throw new UnauthorizedException('Credenciales incorrectas');
-
         }
 
         if (account.status === 'PENDING') {
             throw new BadRequestException('Tu cuenta aun esta pendiente de aprobacion');
-
         }
 
         if (account.status === 'REJECTED') {
             throw new BadRequestException('Tu cuenta fue rechazada. Contacta al administrador.');
-
         }
 
         const passwordValid = await bcrypt.compare(dto.password, account.password);
-
         if (!passwordValid) {
             throw new UnauthorizedException('Credenciales incorrectas');
         }
@@ -98,7 +82,6 @@ export class AuthService {
         };
     }
 
-    // Listar cuentas pendientes (para el auditor)
     async findPending() {
         return this.prisma.patientAccount.findMany({
             where: { status: 'PENDING' },
@@ -107,7 +90,6 @@ export class AuthService {
         });
     }
 
-    // Aprobar o rechazar cuenta
     async updateStatus(accountId: number, status: 'APPROVED' | 'REJECTED', approvedBy: number) {
         const account = await this.prisma.patientAccount.findUnique({
             where: { id: accountId },

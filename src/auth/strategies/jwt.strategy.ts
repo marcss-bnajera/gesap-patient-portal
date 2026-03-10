@@ -1,11 +1,8 @@
-// =============================================
-// JwtStrategy para el Portal de Pacientes
-// =============================================
-
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AccountStatus } from '@prisma/client';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -22,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             where: { id: payload.sub },
         });
 
-        if (!account || account.status !== 'APPROVED') {
+        if (!account || account.status !== 'APPROVED' as any) {
             throw new UnauthorizedException('Cuenta no encontrada o no aprobada');
         }
 
