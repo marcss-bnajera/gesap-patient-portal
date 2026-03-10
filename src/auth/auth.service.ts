@@ -1,6 +1,7 @@
 // =============================================
 // AuthService del Portal
-// Autoregistro con DPI + Login + Aprobacion por auditor
+// Autoregistro LIBRE con DPI + Login + Aprobacion por auditor
+// El paciente puede registrarse aunque no este en el sistema aun
 // =============================================
 
 import {
@@ -9,9 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
-import { RegisterPatientDto } from './dto/register-patient.dto';
-import { LoginDto } from './dto/login.dto';
+@@ -15, 121 + 16, 112 @@ import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -20,33 +19,25 @@ export class AuthService {
         private jwtService: JwtService,
     ) { }
 
-    // Autoregistro: el paciente crea su cuenta con DPI
+    // Autoregistro: cualquier persona puede crear su cuenta con su DPI
+    // La cuenta queda PENDING hasta que un auditor la apruebe
     async register(dto: RegisterPatientDto) {
-        // Verificar que el DPI exista en la tabla de pacientes
-        const patient = await this.prisma.patient.findUnique({
+        // Verificar que no tenga cuenta ya con ese DPI
+        const existingDpi = await this.prisma.patientAccount.findUnique({
             where: { dpi: dto.dpi },
         });
 
-        if (!patient) {
-            throw new NotFoundException(
-                'No se encontro un paciente con ese DPI. Debe estar registrado en el sistema primero.',
-            );
-        }
-
-        // Verificar que no tenga cuenta ya
-        const existingAccount = await this.prisma.patientAccount.findUnique({
-            where: { dpi: dto.dpi },
-        });
-
-        if (existingAccount) {
+        if (existingDpi) {
             throw new ConflictException('Ya existe una cuenta registrada con ese DPI');
+
         }
 
-        const emailInUse = await this.prisma.patientAccount.findUnique({
+        // Verificar que el email no este en uso
+        const existingEmail = await this.prisma.patientAccount.findUnique({
             where: { email: dto.email },
         });
 
-        if (emailInUse) {
+        if (existingEmail) {
             throw new ConflictException('Ese correo ya esta registrado');
         }
 
@@ -75,14 +66,17 @@ export class AuthService {
 
         if (!account) {
             throw new UnauthorizedException('Credenciales incorrectas');
+
         }
 
         if (account.status === 'PENDING') {
             throw new BadRequestException('Tu cuenta aun esta pendiente de aprobacion');
+
         }
 
         if (account.status === 'REJECTED') {
             throw new BadRequestException('Tu cuenta fue rechazada. Contacta al administrador.');
+
         }
 
         const passwordValid = await bcrypt.compare(dto.password, account.password);

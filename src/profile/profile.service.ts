@@ -10,28 +10,33 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ProfileService {
     constructor(private prisma: PrismaService) { }
 
-    // Obtener perfil del paciente por su DPI
     async getProfile(dpi: string) {
         const patient = await this.prisma.patient.findUnique({
             where: { dpi },
+            include: {
+                emergencyContacts: { where: { isActive: true } },
+            },
         });
 
         if (!patient) {
-            throw new NotFoundException('Paciente no encontrado');
+            throw new NotFoundException(
+                'No se encontro tu perfil. Puede que aun no te hayan registrado en el sistema.',
+            );
         }
 
-        // Retornar solo datos seguros (sin info sensible del sistema)
         return {
             dpi: patient.dpi,
             firstName: patient.firstName,
-            lastName: patient.lastName,
+            secondName: patient.secondName,
+            thirdName: patient.thirdName,
+            firstLastName: patient.firstLastName,
+            secondLastName: patient.secondLastName,
             birthDate: patient.birthDate,
             sex: patient.sex,
             bloodType: patient.bloodType,
             phone: patient.phone,
             address: patient.address,
-            emergencyContact: patient.emergencyContact,
-            emergencyPhone: patient.emergencyPhone,
+            emergencyContacts: patient.emergencyContacts,
         };
     }
 }
