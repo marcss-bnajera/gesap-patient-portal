@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ProfileModule } from './profile/profile.module';
 import { EmergencyContactsModule } from './emergency-contacts/emergency-contacts.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import { EmergencyContactsModule } from './emergency-contacts/emergency-contacts
         AuthModule,
         ProfileModule,
         EmergencyContactsModule,
+        AiModule,
     ],
 })
 export class AppModule { }
